@@ -1,15 +1,15 @@
-const CACHE_NAME = 'word-trainer-v1';
+const CACHE_NAME = 'word-trainer-v2';
 const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/app.js',
-  '/words.csv',
-  '/manifest.webmanifest',
-  '/icons/icon-180.png',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/icons/icon-512-maskable.png',
+  '/words/',
+  '/words/index.html',
+  '/words/style.css',
+  '/words/app.js',
+  '/words/words.csv',
+  '/words/manifest.webmanifest',
+  '/words/icons/icon-180.png',
+  '/words/icons/icon-192.png',
+  '/words/icons/icon-512.png',
+  '/words/icons/icon-512-maskable.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -58,7 +58,7 @@ self.addEventListener('fetch', (event) => {
 
           return networkResponse;
         })
-        .catch(() => caches.match('/index.html'));
+        .catch(() => caches.match('/words/index.html'));
     }),
   );
 });
