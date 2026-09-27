@@ -5,6 +5,8 @@ const state = {
   currentBlock: [],
   blockPosition: 0,
   currentWordIndex: -1,
+  answerMode: 'english',
+  categoryView: 'mastered',
   speech: {
     supported: 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window,
     voice: null,
@@ -29,6 +31,10 @@ const elements = {
   pausePanel: document.getElementById('pause-panel'),
   pauseList: document.getElementById('pause-list'),
   continueButton: document.getElementById('continue-button'),
+  answerLabel: document.getElementById('answer-label'),
+  categoryWordList: document.getElementById('category-word-list'),
+  categoryListEmpty: document.getElementById('category-list-empty'),
+  categoryFilterButtons: document.querySelectorAll('[data-category-filter]'),
 };
 
 function normalizeText(value) {
@@ -48,18 +54,23 @@ function parseCsv(text) {
     return [];
   }
 
+  const headers = lines[0].split(',').map((header) => header.trim().toLowerCase());
+  const chineseIndex = headers.indexOf('chinese');
+  const pinyinIndex = headers.indexOf('pinyin');
+  const englishIndex = headers.indexOf('english');
+
+  if (chineseIndex === -1 || pinyinIndex === -1 || englishIndex === -1) {
+    return [];
+  }
+
   const rows = lines.slice(1);
 
   return rows
     .map((line) => {
-      const firstCommaIndex = line.indexOf(',');
-
-      if (firstCommaIndex === -1) {
-        return null;
-      }
-
-      const chinese = line.slice(0, firstCommaIndex).trim();
-      const english = line.slice(firstCommaIndex + 1).trim();
+      const cells = line.split(',').map((cell) => cell.trim());
+      const chinese = cells[chineseIndex] || '';
+      const pinyin = cells[pinyinIndex] || '';
+      const english = cells[englishIndex] || '';
 
       if (!chinese || !english) {
         return null;
@@ -67,6 +78,7 @@ function parseCsv(text) {
 
       return {
         chinese,
+        pinyin,
         english,
       };
     })
@@ -85,6 +97,23 @@ function isCorrectAnswer(submittedAnswer, expectedAnswer) {
   const normalizedSubmitted = normalizeText(submittedAnswer);
 
   return acceptedAnswers.some((answer) => normalizeText(answer) === normalizedSubmitted);
+}
+
+function normalizePinyin(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isCorrectPinyin(submittedAnswer, expectedAnswer) {
+  const acceptedAnswers = getAcceptedAnswers(expectedAnswer);
+  const normalizedSubmitted = normalizePinyin(submittedAnswer);
+
+  return acceptedAnswers.some((answer) => normalizePinyin(answer) === normalizedSubmitted);
 }
 
 function updateProgress() {
@@ -141,6 +170,54 @@ function updateCategorySummary() {
   elements.notSeenCount.textContent = String(notSeen);
 }
 
+function getCategoryLabel(category) {
+  if (category === 'mastered') {
+    return 'Mastered';
+  }
+
+  if (category === 'inProgress') {
+    return 'In Progress';
+  }
+
+  return 'Not Seen';
+}
+
+function renderCategoryWordList() {
+  const selectedCategory = state.categoryView;
+  const wordsInCategory = state.words.filter((word) => getWordCategory(word) === selectedCategory);
+
+  elements.categoryFilterButtons.forEach((button) => {
+    const isActive = button.dataset.categoryFilter === selectedCategory;
+    button.classList.toggle('active', isActive);
+  });
+
+  elements.categoryWordList.innerHTML = '';
+
+  if (!wordsInCategory.length) {
+    elements.categoryListEmpty.textContent = `No words in ${getCategoryLabel(selectedCategory)}.`;
+    return;
+  }
+
+  elements.categoryListEmpty.textContent = '';
+
+  wordsInCategory.forEach((word) => {
+    const listItem = document.createElement('li');
+    listItem.textContent = `${word.chinese} (${word.pinyin || 'n/a'}) - ${word.english} [C:${word.correctCount} W:${word.wrongCount}]`;
+    elements.categoryWordList.appendChild(listItem);
+  });
+}
+
+function updateAnswerPrompt() {
+  if (state.answerMode === 'pinyin') {
+    elements.answerLabel.textContent = 'Type the Pinyin:';
+    elements.answer.placeholder = 'Enter pinyin';
+    return;
+  }
+
+  elements.answerLabel.textContent = 'Type the English translation:';
+  elements.answer.placeholder = 'Enter English translation';
+}
+
 function getWordStorageKey(word) {
   return `${word.chinese}||${word.english}`;
 }
@@ -176,6 +253,7 @@ function saveProgress() {
       payload[getWordStorageKey(word)] = {
         correctCount: word.correctCount,
         wrongCount: word.wrongCount,
+        pinyin: word.pinyin,
       };
     });
 
@@ -378,6 +456,9 @@ function showCurrentWord() {
 
   updateProgress();
   updateCategorySummary();
+  renderCategoryWordList();
+  state.answerMode = 'english';
+  updateAnswerPrompt();
   elements.form.classList.remove('hidden');
   elements.pausePanel.classList.add('hidden');
   elements.word.textContent = word.chinese;
@@ -423,17 +504,38 @@ function handleSubmit(event) {
     return;
   }
 
-  if (isCorrectAnswer(submittedAnswer, currentWord.english)) {
-    currentWord.correctCount += 1;
-    saveProgress();
-    elements.feedback.textContent = `Correct! ${currentWord.english}`;
-    elements.feedback.className = 'feedback correct';
-  } else {
+  if (state.answerMode === 'english') {
+    if (isCorrectAnswer(submittedAnswer, currentWord.english)) {
+      currentWord.correctCount += 1;
+      saveProgress();
+      state.answerMode = 'pinyin';
+      updateAnswerPrompt();
+      elements.feedback.textContent = 'English correct. Now type the Pinyin.';
+      elements.feedback.className = 'feedback correct';
+      elements.answer.value = '';
+      elements.answer.focus();
+      updateCategorySummary();
+      renderCategoryWordList();
+      return;
+    }
+
     currentWord.wrongCount += 1;
     saveProgress();
     elements.feedback.textContent = `Not quite. The answer is: ${currentWord.english}`;
     elements.feedback.className = 'feedback incorrect';
     updateCategorySummary();
+    renderCategoryWordList();
+    elements.answer.value = '';
+    elements.answer.focus();
+    return;
+  }
+
+  if (!currentWord.pinyin || isCorrectPinyin(submittedAnswer, currentWord.pinyin)) {
+    elements.feedback.textContent = `Pinyin correct: ${currentWord.pinyin || 'n/a'}`;
+    elements.feedback.className = 'feedback correct';
+  } else {
+    elements.feedback.textContent = `Pinyin not quite. Correct pinyin: ${currentWord.pinyin}`;
+    elements.feedback.className = 'feedback incorrect';
     elements.answer.value = '';
     elements.answer.focus();
     return;
@@ -450,6 +552,7 @@ function handleSubmit(event) {
   }
 
   updateCategorySummary();
+  renderCategoryWordList();
 
   state.blockPosition += 1;
 
@@ -467,6 +570,16 @@ function handleContinue() {
 
 function handleReplayAudio() {
   speakCurrentWord();
+}
+
+function handleCategoryFilterClick(event) {
+  const category = event.currentTarget.dataset.categoryFilter;
+  if (!category) {
+    return;
+  }
+
+  state.categoryView = category;
+  renderCategoryWordList();
 }
 
 function handleResetProgress() {
@@ -491,8 +604,11 @@ function handleResetProgress() {
   state.currentBlock = [];
   state.blockPosition = 0;
   state.currentWordIndex = -1;
+  state.answerMode = 'english';
+  state.categoryView = 'mastered';
 
   updateCategorySummary();
+  renderCategoryWordList();
   showCurrentWord();
   elements.feedback.textContent = 'Progress reset.';
   elements.feedback.className = 'feedback correct';
@@ -530,6 +646,7 @@ async function loadWords() {
     state.words = applyStoredProgress(parsedWords);
     elements.progress.textContent = `Loading ${state.words.length} words...`;
     updateCategorySummary();
+    renderCategoryWordList();
     showCurrentWord();
   } catch (error) {
     elements.progress.textContent = 'Error loading words';
@@ -543,6 +660,9 @@ elements.form.addEventListener('submit', handleSubmit);
 elements.continueButton.addEventListener('click', handleContinue);
 elements.replayAudioButton.addEventListener('click', handleReplayAudio);
 elements.resetProgressButton.addEventListener('click', handleResetProgress);
+elements.categoryFilterButtons.forEach((button) => {
+  button.addEventListener('click', handleCategoryFilterClick);
+});
 registerServiceWorker();
 initializeSpeech();
 loadWords();

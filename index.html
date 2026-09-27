@@ -36,7 +36,7 @@
         </div>
 
         <form id="answer-form">
-          <label for="answer">Type the English translation:</label>
+          <label id="answer-label" for="answer">Type the English translation:</label>
           <input id="answer" name="answer" type="text" autocomplete="off" />
           <button type="submit">Check</button>
         </form>
@@ -49,6 +49,17 @@
         </section>
 
         <p id="feedback" class="feedback" aria-live="polite"></p>
+
+        <section class="category-browser">
+          <h3>View Words By Category</h3>
+          <div class="category-filter-buttons">
+            <button type="button" data-category-filter="mastered">Mastered</button>
+            <button type="button" data-category-filter="inProgress">In Progress</button>
+            <button type="button" data-category-filter="notSeen">Not Seen</button>
+          </div>
+          <p id="category-list-empty" class="category-list-empty"></p>
+          <ul id="category-word-list" class="category-word-list"></ul>
+        </section>
       </section>
     </main>
 
