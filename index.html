@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Word Trainer" />
+    <title>Vocabulary Practice</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/icon-180.png" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="panel">
+        <h1>Vocabulary Practice</h1>
+
+        <p id="progress" class="progress">Loading words...</p>
+        <p id="category-summary" class="category-summary">
+          Mastered: <span id="mastered-count">0</span> | In Progress:
+          <span id="in-progress-count">0</span> | Not Seen:
+          <span id="not-seen-count">0</span>
+        </p>
+        <h2 id="word" class="word">-</h2>
+
+        <div class="audio-tools">
+          <button id="replay-audio-button" type="button">Replay Audio</button>
+          <p id="audio-status" class="audio-status" aria-live="polite"></p>
+        </div>
+
+        <form id="answer-form">
+          <label for="answer">Type the English translation:</label>
+          <input id="answer" name="answer" type="text" autocomplete="off" />
+          <button type="submit">Check</button>
+        </form>
+
+        <section id="pause-panel" class="pause-panel hidden" aria-live="polite">
+          <h3>Quick Review</h3>
+          <p>Here are the previous 7 words:</p>
+          <ol id="pause-list"></ol>
+          <button id="continue-button" type="button">Continue</button>
+        </section>
+
+        <p id="feedback" class="feedback" aria-live="polite"></p>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

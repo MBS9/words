@@ -1,0 +1,199 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f5f7fb;
+  color: #1f2937;
+}
+
+.app {
+  max-width: 700px;
+  margin: 48px auto;
+  padding: 24px;
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #dfe7f5;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  padding: 32px 24px;
+}
+
+h1 {
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-size: 2rem;
+}
+
+.progress {
+  margin: 0 0 16px;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.category-summary {
+  margin: 0 0 14px;
+  color: #334155;
+  font-size: 0.95rem;
+}
+
+.word {
+  margin: 0 0 24px;
+  font-size: 2.5rem;
+  text-align: center;
+}
+
+.audio-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+
+.audio-status {
+  margin: 0;
+  min-height: 20px;
+  color: #334155;
+  font-size: 0.9rem;
+}
+
+.audio-status.error {
+  color: #991b1b;
+}
+
+#answer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#answer-form.hidden {
+  display: none;
+}
+
+.hidden {
+  display: none;
+}
+
+.pause-panel {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.pause-panel h3 {
+  margin: 0 0 8px;
+}
+
+.pause-panel p {
+  margin: 0 0 10px;
+}
+
+.pause-panel ol {
+  margin: 0 0 14px 18px;
+  padding: 0;
+}
+
+.pause-panel li {
+  margin: 4px 0;
+}
+
+label {
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+button {
+  padding: 12px 16px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1d4ed8;
+}
+
+.feedback {
+  min-height: 24px;
+  margin-top: 18px;
+  font-weight: 600;
+}
+
+.feedback.correct {
+  color: #166534;
+}
+
+.feedback.incorrect {
+  color: #991b1b;
+}
+
+.summary {
+  text-align: center;
+}
+
+.summary h2 {
+  margin-bottom: 12px;
+}
+
+.summary p {
+  margin: 8px 0;
+}
+
+@media (max-width: 700px) {
+  .app {
+    margin: 0;
+    min-height: 100svh;
+    padding: max(14px, env(safe-area-inset-top)) 12px max(14px, env(safe-area-inset-bottom));
+  }
+
+  .panel {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    padding: 20px 14px;
+    min-height: calc(100svh - max(14px, env(safe-area-inset-top)) - max(14px, env(safe-area-inset-bottom)));
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    margin-bottom: 16px;
+  }
+
+  .word {
+    font-size: 2rem;
+    margin-bottom: 16px;
+  }
+
+  .audio-tools {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  input,
+  button {
+    font-size: 1rem;
+    min-height: 46px;
+  }
+
+  .feedback {
+    margin-top: 14px;
+  }
+}
