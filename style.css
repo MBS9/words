@@ -50,8 +50,17 @@ h1 {
 .audio-tools {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   margin: 0 0 14px;
+}
+
+.button-secondary {
+  background: #64748b;
+}
+
+.button-secondary:hover {
+  background: #475569;
 }
 
 .audio-status {

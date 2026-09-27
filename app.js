@@ -12,6 +12,8 @@ const state = {
   },
 };
 
+const WORD_PROGRESS_STORAGE_KEY = 'word-trainer-progress-v1';
+
 const elements = {
   progress: document.getElementById('progress'),
   masteredCount: document.getElementById('mastered-count'),
@@ -19,6 +21,7 @@ const elements = {
   notSeenCount: document.getElementById('not-seen-count'),
   word: document.getElementById('word'),
   replayAudioButton: document.getElementById('replay-audio-button'),
+  resetProgressButton: document.getElementById('reset-progress-button'),
   audioStatus: document.getElementById('audio-status'),
   form: document.getElementById('answer-form'),
   answer: document.getElementById('answer'),
@@ -136,6 +139,64 @@ function updateCategorySummary() {
   elements.masteredCount.textContent = String(mastered);
   elements.inProgressCount.textContent = String(inProgress);
   elements.notSeenCount.textContent = String(notSeen);
+}
+
+function getWordStorageKey(word) {
+  return `${word.chinese}||${word.english}`;
+}
+
+function loadStoredProgress() {
+  try {
+    const raw = window.localStorage.getItem(WORD_PROGRESS_STORAGE_KEY);
+
+    if (!raw) {
+      return {};
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') {
+      return {};
+    }
+
+    return parsed;
+  } catch (error) {
+    return {};
+  }
+}
+
+function saveProgress() {
+  try {
+    const payload = {};
+
+    state.words.forEach((word) => {
+      if (word.correctCount === 0 && word.wrongCount === 0) {
+        return;
+      }
+
+      payload[getWordStorageKey(word)] = {
+        correctCount: word.correctCount,
+        wrongCount: word.wrongCount,
+      };
+    });
+
+    window.localStorage.setItem(WORD_PROGRESS_STORAGE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    // Ignore persistence failures so quiz flow keeps working.
+  }
+}
+
+function applyStoredProgress(words) {
+  const storedProgress = loadStoredProgress();
+
+  return words.map((word) => {
+    const stored = storedProgress[getWordStorageKey(word)] || {};
+
+    return {
+      ...word,
+      correctCount: Number.isFinite(stored.correctCount) ? Math.max(0, stored.correctCount) : 0,
+      wrongCount: Number.isFinite(stored.wrongCount) ? Math.max(0, stored.wrongCount) : 0,
+    };
+  });
 }
 
 function updateAudioStatus(message, isError = false) {
@@ -364,10 +425,12 @@ function handleSubmit(event) {
 
   if (isCorrectAnswer(submittedAnswer, currentWord.english)) {
     currentWord.correctCount += 1;
+    saveProgress();
     elements.feedback.textContent = `Correct! ${currentWord.english}`;
     elements.feedback.className = 'feedback correct';
   } else {
     currentWord.wrongCount += 1;
+    saveProgress();
     elements.feedback.textContent = `Not quite. The answer is: ${currentWord.english}`;
     elements.feedback.className = 'feedback incorrect';
     updateCategorySummary();
@@ -406,6 +469,35 @@ function handleReplayAudio() {
   speakCurrentWord();
 }
 
+function handleResetProgress() {
+  const confirmed = window.confirm('Reset all saved word progress on this device?');
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(WORD_PROGRESS_STORAGE_KEY);
+  } catch (error) {
+    // Ignore storage failures and still reset in-memory state.
+  }
+
+  state.words.forEach((word) => {
+    word.correctCount = 0;
+    word.wrongCount = 0;
+  });
+
+  state.totalAnswered = 0;
+  state.recentWords = [];
+  state.currentBlock = [];
+  state.blockPosition = 0;
+  state.currentWordIndex = -1;
+
+  updateCategorySummary();
+  showCurrentWord();
+  elements.feedback.textContent = 'Progress reset.';
+  elements.feedback.className = 'feedback correct';
+}
+
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) {
     return;
@@ -435,11 +527,7 @@ async function loadWords() {
       throw new Error('No valid rows were found in the CSV file.');
     }
 
-    state.words = parsedWords.map((word) => ({
-      ...word,
-      correctCount: 0,
-      wrongCount: 0,
-    }));
+    state.words = applyStoredProgress(parsedWords);
     elements.progress.textContent = `Loading ${state.words.length} words...`;
     updateCategorySummary();
     showCurrentWord();
@@ -454,6 +542,7 @@ async function loadWords() {
 elements.form.addEventListener('submit', handleSubmit);
 elements.continueButton.addEventListener('click', handleContinue);
 elements.replayAudioButton.addEventListener('click', handleReplayAudio);
+elements.resetProgressButton.addEventListener('click', handleResetProgress);
 registerServiceWorker();
 initializeSpeech();
 loadWords();
