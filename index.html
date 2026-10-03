@@ -38,7 +38,12 @@
         <form id="answer-form">
           <label id="answer-label" for="answer">Type the English translation:</label>
           <input id="answer" name="answer" type="text" autocomplete="off" />
-          <button type="submit">Check</button>
+          <div class="answer-actions">
+            <button type="submit">Check</button>
+            <button id="mark-mastered-button" class="button-secondary" type="button">
+              Mark Mastered
+            </button>
+          </div>
         </form>
 
         <section id="pause-panel" class="pause-panel hidden" aria-live="polite">

@@ -80,6 +80,15 @@ h1 {
   gap: 12px;
 }
 
+.answer-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.answer-actions button {
+  flex: 1 1 180px;
+}
 #answer-form.hidden {
   display: none;
 }

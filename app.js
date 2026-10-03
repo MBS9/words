@@ -27,6 +27,7 @@ const elements = {
   audioStatus: document.getElementById('audio-status'),
   form: document.getElementById('answer-form'),
   answer: document.getElementById('answer'),
+  markMasteredButton: document.getElementById('mark-mastered-button'),
   feedback: document.getElementById('feedback'),
   pausePanel: document.getElementById('pause-panel'),
   pauseList: document.getElementById('pause-list'),
@@ -125,6 +126,10 @@ function updateProgress() {
 }
 
 function getWordCategory(word) {
+  if (word.manuallyMastered) {
+    return 'mastered';
+  }
+
   const attempts = word.correctCount + word.wrongCount;
 
   if (attempts === 0) {
@@ -246,14 +251,14 @@ function saveProgress() {
     const payload = {};
 
     state.words.forEach((word) => {
-      if (word.correctCount === 0 && word.wrongCount === 0) {
+      if (word.correctCount === 0 && word.wrongCount === 0 && !word.manuallyMastered) {
         return;
       }
 
       payload[getWordStorageKey(word)] = {
         correctCount: word.correctCount,
         wrongCount: word.wrongCount,
-        pinyin: word.pinyin,
+        manuallyMastered: Boolean(word.manuallyMastered),
       };
     });
 
@@ -273,6 +278,7 @@ function applyStoredProgress(words) {
       ...word,
       correctCount: Number.isFinite(stored.correctCount) ? Math.max(0, stored.correctCount) : 0,
       wrongCount: Number.isFinite(stored.wrongCount) ? Math.max(0, stored.wrongCount) : 0,
+      manuallyMastered: Boolean(stored.manuallyMastered),
     };
   });
 }
@@ -582,6 +588,41 @@ function handleCategoryFilterClick(event) {
   renderCategoryWordList();
 }
 
+function handleMarkMastered() {
+  const currentWord = state.words[state.currentWordIndex];
+  if (!currentWord) {
+    return;
+  }
+
+  currentWord.manuallyMastered = true;
+  currentWord.correctCount = Math.max(currentWord.correctCount, currentWord.wrongCount * 4);
+  saveProgress();
+
+  state.totalAnswered += 1;
+  state.recentWords.push({
+    chinese: currentWord.chinese,
+    english: currentWord.english,
+  });
+
+  if (state.recentWords.length > 7) {
+    state.recentWords.shift();
+  }
+
+  updateCategorySummary();
+  renderCategoryWordList();
+  elements.feedback.textContent = `${currentWord.chinese} moved to mastered.`;
+  elements.feedback.className = 'feedback correct';
+
+  state.blockPosition += 1;
+
+  if (state.blockPosition >= state.currentBlock.length) {
+    setTimeout(showPauseReview, 800);
+    return;
+  }
+
+  setTimeout(showCurrentWord, 800);
+}
+
 function handleResetProgress() {
   const confirmed = window.confirm('Reset all saved word progress on this device?');
   if (!confirmed) {
@@ -597,6 +638,7 @@ function handleResetProgress() {
   state.words.forEach((word) => {
     word.correctCount = 0;
     word.wrongCount = 0;
+    word.manuallyMastered = false;
   });
 
   state.totalAnswered = 0;
@@ -660,6 +702,7 @@ elements.form.addEventListener('submit', handleSubmit);
 elements.continueButton.addEventListener('click', handleContinue);
 elements.replayAudioButton.addEventListener('click', handleReplayAudio);
 elements.resetProgressButton.addEventListener('click', handleResetProgress);
+elements.markMasteredButton.addEventListener('click', handleMarkMastered);
 elements.categoryFilterButtons.forEach((button) => {
   button.addEventListener('click', handleCategoryFilterClick);
 });
